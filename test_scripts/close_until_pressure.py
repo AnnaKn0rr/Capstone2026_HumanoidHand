@@ -11,11 +11,14 @@ hand   = left or right
 finger = thumb, index, middle, ring, or pinky
 grams  = the pressure you want, written as a weight in grams
 
-Every run also writes a CSV log (test_log_<hand>_<finger>_<grams>g_<time>.csv)
-with one row per sensor message: time, phase, commanded position, actual
-position, the three normal forces, and the force used (raw and in Newtons).
+Every run also writes a NEW CSV log into the LOG_FOLDER setting below, named
+<hand>_<finger>_<grams>g_<date>_<time>.csv  (for example
+left_index_200g_2026-11-03_10-31-45.csv). It has one row per sensor message:
+time, phase, commanded position, actual position, the three normal forces, and
+the force used (raw and in Newtons).
 """
 import csv
+import os
 import statistics
 import sys
 import time
@@ -28,6 +31,10 @@ from ros2_stark_interfaces.msg import TouchStatus, MotorStatus
 TOUCH_TOPICS   = {"left": "/brainco/touch_status", "right": "/brainco/touch_status_r"}
 MOTOR_TOPICS   = {"left": "/brainco/motor_status", "right": "/brainco/motor_status_r"}
 COMMAND_TOPICS = {"left": "/brainco/cmd_left",     "right": "/brainco/cmd_right"}
+
+# Where the test results are saved (the "~" means your home folder).
+# If your logger_data folder is somewhere else, change this path.
+LOG_FOLDER = "~/UNCW-G1-Humanoid-Robot/src/g1_gestures/src/Capstone2026_HumanoidHand/test_scripts/logger_data"
 
 # Which spot in the touch message each finger is.
 # CHECK THIS: hands_controller.cpp calls data[0] the "index finger", but this
@@ -54,9 +61,13 @@ OPEN_POS    = 0.0    # joint value when the finger is fully open
 THUMB_DELAY = 0.5   # seconds to wait between closing the fingers and closing the thumb
 
 CLOSED_POS = 1.0     # joint value when the finger is fully closed (0.0 is open)
-STEP       = 0.005   # how far the finger moves each tick (smaller = slower, smoother)
+STEP       = 0.001   # how far the finger moves each tick. 0.001 is the smallest step the
+                     # hand can resolve (it reports positions in thousandths).
+                     # At 50 ticks/s this is 0.05 per second: about 20 s for the full range.
 RATE_HZ    = 50      # ticks per second
-SPEED      = 0.5     # speed sent to the hand (0 to 1). Lower = gentler.
+SPEED      = 0.2     # speed sent to the hand DURING THE TEST (0 to 1). Same slow value your
+                     # gesture code uses for grasping.
+PREP_SPEED = 0.5     # speed for the setup moves (closing the other fingers, opening the test finger)
 
 # Multiply the sensor reading by this to get Newtons.
 # 0.01 means the sensor reports hundredths of a Newton (raw / 100 = Newtons),
@@ -91,7 +102,13 @@ def main():
     # --- Data logger: one CSV row every time a touch message streams in ---
     log_state = {"phase": "startup", "cmd": ""}   # phase and last commanded position of our finger
     start_time = time.time()
-    log_name = f"test_log_{hand}_{finger}_{grams:g}g_{time.strftime('%Y%m%d_%H%M%S')}.csv"
+    folder = os.path.expanduser(LOG_FOLDER)
+    if not os.path.isdir(folder):
+        print(f"NOTE: {folder} did not exist, so it was created. "
+              "If you expected an existing logger_data folder, check LOG_FOLDER at the top of this file.")
+    os.makedirs(folder, exist_ok=True)               # make the folder if it isn't there yet
+    log_name = os.path.join(
+        folder, f"{hand}_{finger}_{grams:g}g_{time.strftime('%Y-%m-%d_%H-%M-%S')}.csv")
     log_file = open(log_name, "w", newline="")
     log = csv.writer(log_file)
     log.writerow(["time_s", "phase", "commanded_position", "actual_position",
@@ -151,12 +168,14 @@ def main():
     hold = [float(p) for p in latest["motors"]]   # all 6 joints stay here, except our finger
     hold[joint] = OPEN_POS                        # the finger under test starts fully open
 
+    speed = {"now": PREP_SPEED}                   # fast for setup, switched to SPEED for the test
+
     def move_finger(position):
         msg = JointState()
         positions = list(hold)
         positions[joint] = position
         msg.position = positions
-        msg.velocity = [SPEED] * len(positions)   # the hand needs this, like your gesture code
+        msg.velocity = [speed["now"]] * len(positions)   # the hand needs this, like your gesture code
         pub.publish(msg)
         log_state["cmd"] = round(position, 3)     # remember what we commanded, for the log
 
@@ -231,6 +250,7 @@ def main():
     print(f"Closing {hand} {finger} until {grams} g ({target_n:.2f} N)...")
 
     log_state["phase"] = "test"
+    speed["now"] = SPEED                    # slow from here on
     position = hold[joint]                  # start from where the finger is now
     reached = False
     last_print = 0.0
@@ -268,7 +288,7 @@ def main():
     print(f"(range during the last second: {min(samples):.1f} to {max(samples):.1f} raw)")
     if max(samples) + baseline >= SENSOR_MAX_RAW:
         print(f"NOTE: the sensor hit its maximum ({SENSOR_MAX_RAW:.0f} raw). The real pressure may be higher.")
-    print(f"Data saved to {log_name}")
+    print(f"Data saved to {os.path.abspath(log_name)}")
 
     finish()
 
