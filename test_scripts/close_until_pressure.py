@@ -27,12 +27,12 @@ import rclpy
 from sensor_msgs.msg import JointState
 from ros2_stark_interfaces.msg import TouchStatus, MotorStatus
 
-# ---------------- SETTINGS (change these to match your setup) ----------------
+# ---------------- SETTINGS ----------------
 TOUCH_TOPICS   = {"left": "/brainco/touch_status", "right": "/brainco/touch_status_r"}
 MOTOR_TOPICS   = {"left": "/brainco/motor_status", "right": "/brainco/motor_status_r"}
 COMMAND_TOPICS = {"left": "/brainco/cmd_left",     "right": "/brainco/cmd_right"}
 
-# Where the test results are saved (the "~" means your home folder).
+# Where the test results are saved
 # If your logger_data folder is somewhere else, change this path.
 LOG_FOLDER = "~/UNCW-G1-Humanoid-Robot/src/g1_gestures/src/Capstone2026_HumanoidHand/test_scripts/logger_data"
 
@@ -127,7 +127,7 @@ def main():
         log.writerow([round(time.time() - start_time, 3), log_state["phase"],
                       log_state["cmd"], actual, *forces,
                       raw, round(raw * SENSOR_TO_NEWTONS, 3)])
-        log_file.flush()                                     # so nothing is lost if you press Ctrl+C
+        log_file.flush()                                     # so nothing is lost if  press Ctrl+C
 
     def smooth_raw():
         """Median of the last 5 readings, so one noisy spike can't trigger the stop."""
