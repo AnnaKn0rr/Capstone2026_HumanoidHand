@@ -30,17 +30,17 @@ import rclpy
 from sensor_msgs.msg import JointState
 from ros2_stark_interfaces.msg import TouchStatus, MotorStatus
 
-# ---------------- SETTINGS (change these to match your setup) ----------------
+# ---------------- SETTINGS ----------------
 TOUCH_TOPICS   = {"left": "/brainco/touch_status", "right": "/brainco/touch_status_r"}
 MOTOR_TOPICS   = {"left": "/brainco/motor_status", "right": "/brainco/motor_status_r"}
 COMMAND_TOPICS = {"left": "/brainco/cmd_left",     "right": "/brainco/cmd_right"}
 
-# Where the test results are saved (the "~" means your home folder).
+# Where the test results are saved
 LOG_FOLDER = "~/UNCW-G1-Humanoid-Robot/src/g1_gestures/src/Capstone2026_HumanoidHand/test_scripts/logger_data"
 
 FINGERS = ["thumb", "index", "middle", "ring", "pinky"]
 
-# Which spot in the touch message each finger is (unverified, see close_until_pressure.py)
+# Which spot in the touch message each finger is 
 TOUCH_INDEX = {"thumb": 0, "index": 1, "middle": 2, "ring": 3, "pinky": 4}
 
 # The 6 motor positions are: thumb, thumb_aux, index, middle, ring, pinky
@@ -119,7 +119,7 @@ def main():
             row += [log_state["cmd"][f], actual, raw, round(grams_now, 1), log_state["stopped"][f]]
         latest["touch_count"] += 1
         log.writerow(row + [""])
-        log_file.flush()                                  # so nothing is lost if you press Ctrl+C
+        log_file.flush()                                  # so nothing is lost if press Ctrl+C
 
     def smooth_raw(f):
         """Median of the last 5 readings for one finger."""
