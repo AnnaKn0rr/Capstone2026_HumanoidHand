@@ -23,7 +23,7 @@ import time
 import rclpy
 from ros2_stark_interfaces.msg import TouchStatus, MotorStatus
 
-# ---------------- SETTINGS (same as close_until_pressure.py) ----------------
+# ---------------- SETTINGS ----------------
 TOUCH_TOPICS = {"left": "/brainco/touch_status", "right": "/brainco/touch_status_r"}
 MOTOR_TOPICS = {"left": "/brainco/motor_status", "right": "/brainco/motor_status_r"}
 
